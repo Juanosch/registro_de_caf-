@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mis Cafés">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Mis Cafés</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f7f5f2; --surface: #ffffff; --border: #e8e4de;
+      --border-strong: #ccc7be; --text: #1a1a1a; --text-muted: #888;
+      --text-secondary: #555; --accent: #3a3a3a; --accent-light: #f0ede8;
+      --danger: #c0392b; --success-bg: #eef7ee; --success-text: #2d7a2d;
+      --warning-bg: #fff8e6; --warning-text: #9a6800; --radius: 12px; --star: #d4960a;
+      --green: #1a6b3a; --green-light: #eaf4ee;
+      --blue: #1a3fa0; --blue-light: #e6eeff;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100dvh; max-width: 480px; margin: 0 auto; }
+
+    /* HEADER */
+    header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 1rem 1.25rem 0.75rem; position: sticky; top: 0; z-index: 10; }
+    header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+    header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* TOOLBAR */
+    .toolbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 8px 1rem; display: flex; gap: 6px; align-items: center; }
+    .toolbar-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+    .toolbar-scroll::-webkit-scrollbar { display: none; }
+    .toolbar-btn { font-size: 12px; padding: 5px 10px; border-radius: 20px; border: 0.5px solid var(--border-strong); background: transparent; color: var(--text-secondary); cursor: pointer; white-space: nowrap; font-family: inherit; }
+    .toolbar-btn.activo { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .toolbar-sep { width: 0.5px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+    /* SORT BAR */
+    .sort-bar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 6px 1rem; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+    .sort-bar::-webkit-scrollbar { display: none; }
+    .sort-btn { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border-strong); background: var(--surface); color: var(--text-secondary); cursor: pointer; white-space: nowrap; font-family: inherit; }
+    .sort-btn.activo { background: var(--accent-light); color: var(--accent); border-color: var(--accent); font-weight: 500; }
+
+    /* ACTIVE FILTERS */
+    .active-filters { display: flex; gap: 6px; padding: 6px 1rem; overflow-x: auto; scrollbar-width: none; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+    .active-filters:empty { display: none; }
+    .active-filters::-webkit-scrollbar { display: none; }
+    .af-chip { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--accent); color: #fff; white-space: nowrap; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    /* CARDS */
+    .lista { padding: 0.75rem 0 5rem; }
+    .cafe-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); margin: 0 1rem 0.75rem; overflow: hidden; }
+    .card-main { padding: 1rem 1.25rem; }
+    .cafe-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+    .cafe-nombre { font-size: 15px; font-weight: 600; }
+    .cafe-origen { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; white-space: nowrap; font-weight: 500; }
+    .badge-natural { background: #fff0e6; color: #b05000; }
+    .badge-lavado { background: #e6f0ff; color: #1a4fa0; }
+    .badge-honey { background: #fff8e0; color: #9a6800; }
+    .badge-otro { background: var(--accent-light); color: var(--accent); }
+    .badge-pts { background: var(--success-bg); color: var(--success-text); }
+    .badge-nueva { background: var(--warning-bg); color: var(--warning-text); }
+    .cafe-notas { font-size: 13px; color: var(--text-secondary); margin: 6px 0; line-height: 1.4; }
+    .estrellas { display: flex; gap: 3px; margin-top: 8px; }
+    .estrella { font-size: 18px; cursor: pointer; color: var(--border-strong); line-height: 1; user-select: none; }
+    .estrella.on { color: var(--star); }
+    .btn-notas { background: none; border: none; font-size: 12px; color: #555; cursor: pointer; padding: 4px 0; margin-top: 4px; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .notas-ext { font-size: 12px; color: var(--text-secondary); margin-top: 6px; font-style: italic; line-height: 1.5; display: none; padding: 8px; background: var(--bg); border-radius: 8px; }
+    .notas-ext.visible { display: block; }
+    .cafe-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); align-items: center; }
+    .meta-item { font-size: 11px; color: var(--text-muted); }
+    .btn-eliminar { margin-left: auto; background: none; border: none; font-size: 14px; color: var(--text-muted); cursor: pointer; padding: 2px 4px; font-family: inherit; }
+    .btn-eliminar:hover { color: var(--danger); }
+
+    /* ACTION BUTTONS */
+    .card-actions { display: flex; border-top: 0.5px solid var(--border); }
+    .action-btn { flex: 1; padding: 10px 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; border: none; background: transparent; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .action-btn:first-child { border-right: 0.5px solid var(--border); }
+    .action-btn:hover { background: var(--bg); }
+    .action-btn.verde { color: var(--green); }
+    .action-btn.azul { color: var(--blue); }
+
+    /* INFO PANEL */
+    .info-panel { display: none; border-top: 0.5px solid var(--border); }
+    .info-panel.visible { display: block; }
+    .info-tab-bar { display: flex; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+    .info-tab { flex: 1; padding: 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; border: none; background: transparent; color: var(--text-muted); }
+    .info-tab.activo { color: var(--accent); border-bottom: 2px solid var(--accent); }
+    .info-content { padding: 1rem 1.25rem; font-size: 13px; line-height: 1.65; color: var(--text-secondary); }
+    .info-content h4 { font-size: 12px; font-weight: 600; color: var(--text); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .info-content h4:first-child { margin-top: 0; }
+    .info-content p { margin-bottom: 6px; }
+    .info-content ul { padding-left: 1rem; margin-bottom: 6px; }
+    .info-content li { margin-bottom: 3px; }
+    .info-content .param { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+    .info-content .param:last-child { border-bottom: none; }
+    .info-content .param-label { color: var(--text-muted); }
+    .info-content .param-val { font-weight: 500; color: var(--text); }
+    .info-loading { display: flex; align-items: center; gap: 10px; padding: 1rem 1.25rem; font-size: 13px; color: var(--text-muted); }
+    .spinner-sm { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .info-error { padding: 1rem 1.25rem; font-size: 13px; color: var(--danger); }
+
+    /* FAB */
+    .fab { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); width: calc(100% - 2rem); max-width: 440px; display: flex; gap: 8px; }
+    .fab button { flex: 1; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+    .fab button.scan { background: var(--green); flex: 0 0 auto; padding: 14px 18px; font-size: 20px; }
+
+    /* OVERLAYS */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: flex-end; }
+    .overlay.visible { display: flex; }
+    .sheet { background: var(--surface); border-radius: 20px 20px 0 0; padding: 1.25rem; width: 100%; max-height: 90dvh; overflow-y: auto; }
+    .sheet-handle { width: 36px; height: 4px; background: var(--border-strong); border-radius: 2px; margin: 0 auto 1rem; }
+    .sheet h2 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px; font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; font-size: 14px; padding: 10px 12px; border: 0.5px solid var(--border-strong); border-radius: 8px; background: var(--bg); color: var(--text); font-family: inherit; appearance: none; }
+    .form-group textarea { height: 72px; resize: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .estrellas-form { display: flex; gap: 8px; margin-top: 4px; }
+    .estrellas-form span { font-size: 26px; cursor: pointer; color: var(--border-strong); user-select: none; }
+    .estrellas-form span.on { color: var(--star); }
+    .form-error { color: var(--danger); font-size: 13px; margin-bottom: 8px; display: none; }
+    .form-btns { display: flex; gap: 8px; margin-top: 1rem; }
+    .form-btns button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; }
+    .btn-cancel { background: transparent; border: 0.5px solid var(--border-strong); color: var(--text); }
+    .btn-save { background: var(--accent); border: none; color: #fff; }
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); font-size: 14px; }
+    .empty span { font-size: 40px; display: block; margin-bottom: 8px; }
+
+    /* FILTER SHEET */
+    .filter-group { margin-bottom: 1.25rem; }
+    .filter-group-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font-size: 13px; padding: 6px 12px; border-radius: 20px; border: 0.5px solid var(--border-strong); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+    .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .filter-btns { display: flex; gap: 8px; margin-top: 1.25rem; }
+    .filter-btns button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; }
+    .btn-reset { background: transparent; border: 0.5px solid var(--border-strong); color: var(--text); }
+    .btn-apply { background: var(--accent); border: none; color: #fff; }
+
+    /* SCAN */
+    .scan-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+    .scan-overlay.visible { display: flex; }
+    .scan-box { background: var(--surface); border-radius: 16px; padding: 1.5rem; width: calc(100% - 2rem); max-width: 420px; text-align: center; }
+    .scan-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .scan-box p { font-size: 13px; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5; }
+    .scan-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-bottom: 1rem; display: none; }
+    .scan-btns { display: flex; flex-direction: column; gap: 8px; }
+    .scan-btns button { width: 100%; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; border: none; }
+    .btn-camara { background: var(--green); color: #fff; }
+    .btn-galeria { background: var(--accent-light); color: var(--accent); border: 0.5px solid var(--border-strong) !important; }
+    .btn-scan-cancel { background: transparent; color: var(--text-muted); border: 0.5px solid var(--border-strong) !important; }
+    .scan-loading { display: none; flex-direction: column; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 1rem 0; }
+    .scan-loading.visible { display: flex; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .scan-error { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>☕ Mis cafés</h1>
+  <p id="subtitulo">Cargando...</p>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-scroll">
+    <button class="toolbar-btn activo" onclick="setOrigen('todos',this)">Todos</button>
+    <button class="toolbar-btn" onclick="setOrigen('Natural',this)">Natural</button>
+    <button class="toolbar-btn" onclick="setOrigen('Lavado',this)">Lavado</button>
+    <button class="toolbar-btn" onclick="setOrigen('Honey',this)">Honey</button>
+    <button class="toolbar-btn" onclick="setOrigen('Guatemala',this)">🇬🇹 Guatemala</button>
+    <button class="toolbar-btn" onclick="setOrigen('Colombia',this)">🇨🇴 Colombia</button>
+    <button class="toolbar-btn" onclick="setOrigen('Perú',this)">🇵🇪 Perú</button>
+    <button class="toolbar-btn" onclick="setOrigen('Brasil',this)">🇧🇷 Brasil</button>
+    <button class="toolbar-btn" onclick="setOrigen('Etiopía',this)">🇪🇹 Etiopía</button>
+  </div>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn" onclick="abrirFiltros()">⚙︎ Filtrar</button>
+</div>
+
+<div class="active-filters" id="active-filters"></div>
+
+<div class="sort-bar">
+  <button class="sort-btn activo" onclick="setOrden('pts',this)">⭐ Puntaje SCA</button>
+  <button class="sort-btn" onclick="setOrden('mio',this)">★ Mi puntaje</button>
+  <button class="sort-btn" onclick="setOrden('fecha',this)">📅 Más reciente</button>
+  <button class="sort-btn" onclick="setOrden('alpha',this)">🔤 A–Z</button>
+  <button class="sort-btn" onclick="setOrden('tostador',this)">🏭 Tostador</button>
+  <button class="sort-btn" onclick="setOrden('pais',this)">🌍 País</button>
+</div>
+
+<div class="lista" id="lista"></div>
+
+<div class="fab">
+  <button onclick="abrirScan()" class="scan" title="Escanear packaging">📷</button>
+  <button onclick="abrirForm()">+ Agregar café</button>
+</div>
+
+<!-- Form overlay -->
+<div class="overlay" id="overlay" onclick="cerrarSiOverlay(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="form-titulo">Agregar café</h2>
+    <div class="form-group"><label>Nombre / finca *</label><input type="text" id="f-nombre" placeholder="Counisa, El Paraíso..."></div>
+    <div class="form-row">
+      <div class="form-group"><label>Origen</label><input type="text" id="f-origen" placeholder="Guatemala"></div>
+      <div class="form-group"><label>Proceso</label>
+        <select id="f-proceso"><option value="">—</option><option>Natural</option><option>Lavado</option><option>Honey</option><option>Anaeróbico</option><option>Experimental</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Tostador</label><input type="text" id="f-tostador" placeholder="Puerto Blest..."></div>
+    <div class="form-group"><label>Varietal</label><input type="text" id="f-varietal" placeholder="Caturra, Bourbon, Gesha..."></div>
+    <div class="form-group"><label>Altura (msnm)</label><input type="number" id="f-altura" placeholder="1500"></div>
+    <div class="form-group"><label>Notas de cata</label><input type="text" id="f-notas" placeholder="Frambuesa, caramelo, hibiscus..."></div>
+    <div class="form-row">
+      <div class="form-group"><label>Puntaje SCA</label><input type="number" id="f-pts" placeholder="84.25" step="0.25" min="0" max="100"></div>
+      <div class="form-group"><label>Método</label>
+        <select id="f-metodo"><option value="">—</option><option>Espresso</option><option>V60</option><option>Chemex</option><option>Aeropress</option><option>Cupping</option><option>Moka</option><option>Cold brew</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Mis notas</label><textarea id="f-misnotas" placeholder="Parámetros, impresión, qué cambiaría..."></textarea></div>
+    <div class="form-group"><label>Mi puntaje</label>
+      <div class="estrellas-form" id="estrellas-form">
+        <span data-v="1">☆</span><span data-v="2">☆</span><span data-v="3">☆</span><span data-v="4">☆</span><span data-v="5">☆</span>
+      </div>
+    </div>
+    <div class="form-error" id="form-error"></div>
+    <div class="form-btns">
+      <button class="btn-cancel" onclick="cerrarForm()">Cancelar</button>
+      <button class="btn-save" onclick="guardarCafe()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Filter overlay -->
+<div class="overlay" id="filter-overlay" onclick="cerrarSiFiltroOverlay(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>Filtrar</h2>
+    <div class="filter-group">
+      <div class="filter-group-label">Proceso</div>
+      <div class="filter-chips">
+        <button class="chip" data-grupo="proceso" data-val="Natural" onclick="toggleChip(this)">Natural</button>
+        <button class="chip" data-grupo="proceso" data-val="Lavado" onclick="toggleChip(this)">Lavado</button>
+        <button class="chip" data-grupo="proceso" data-val="Honey" onclick="toggleChip(this)">Honey</button>
+        <button class="chip" data-grupo="proceso" data-val="Anaeróbico" onclick="toggleChip(this)">Anaeróbico</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group-label">País</div>
+      <div class="filter-chips">
+        <button class="chip" data-grupo="pais" data-val="Guatemala" onclick="toggleChip(this)">🇬🇹 Guatemala</button>
+        <button class="chip" data-grupo="pais" data-val="Colombia" onclick="toggleChip(this)">🇨🇴 Colombia</button>
+        <button class="chip" data-grupo="pais" data-val="Perú" onclick="toggleChip(this)">🇵🇪 Perú</button>
+        <button class="chip" data-grupo="pais" data-val="Brasil" onclick="toggleChip(this)">🇧🇷 Brasil</button>
+        <button class="chip" data-grupo="pais" data-val="Etiopía" onclick="toggleChip(this)">🇪🇹 Etiopía</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group-label">Mi puntaje mínimo</div>
+      <div class="filter-chips">
+        <button class="chip" data-grupo="estrellas" data-val="1" onclick="toggleChip(this)">★ 1+</button>
+        <button class="chip" data-grupo="estrellas" data-val="2" onclick="toggleChip(this)">★★ 2+</button>
+        <button class="chip" data-grupo="estrellas" data-val="3" onclick="toggleChip(this)">★★★ 3+</button>
+        <button class="chip" data-grupo="estrellas" data-val="4" onclick="toggleChip(this)">★★★★ 4+</button>
+        <button class="chip" data-grupo="estrellas" data-val="5" onclick="toggleChip(this)">★★★★★ Solo 5</button>
+      </div>
+    </div>
+    <div class="filter-btns">
+      <button class="btn-reset" onclick="resetFiltros()">Limpiar</button>
+      <button class="btn-apply" onclick="aplicarFiltros()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scan overlay -->
+<div class="scan-overlay" id="scan-overlay">
+  <div class="scan-box">
+    <h3>📷 Escanear packaging</h3>
+    <p>Sacale una foto al packaging del café y voy a leer automáticamente el nombre, origen, proceso y notas de cata.</p>
+    <img class="scan-preview" id="scan-preview" alt="Preview">
+    <div class="scan-loading" id="scan-loading"><div class="spinner"></div><span>Analizando el packaging...</span></div>
+    <div class="scan-error" id="scan-error"></div>
+    <div class="scan-btns" id="scan-btns">
+      <button class="btn-camara" onclick="tomarFoto()">📷 Usar cámara</button>
+      <button class="btn-galeria" onclick="elegirGaleria()">🖼 Elegir de galería</button>
+      <button class="btn-scan-cancel" onclick="cerrarScan()">Cancelar</button>
+    </div>
+    <input type="file" id="file-camara" accept="image/*" capture="environment" style="display:none" onchange="procesarImagen(this)">
+    <input type="file" id="file-galeria" accept="image/*" style="display:none" onchange="procesarImagen(this)">
+  </div>
+</div>
+
+<script>
+const KEY = 'mis-cafes-v1';
+const GEMINI_KEY = 'AQ.Ab8RN6IiRFcLs30K6xEBeywNjMbI09FuT9T-LLsrbA8F1PgMBw';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_KEY;
+
+let cafes = [];
+let puntajeForm = 0;
+let origenActivo = 'todos';
+let ordenActivo = 'pts';
+let filtrosActivos = { proceso:[], pais:[], estrellas:null };
+let filtrosPendientes = { proceso:[], pais:[], estrellas:null };
+
+// Cache de respuestas Gemini para no repetir llamadas
+const infoCache = {};
+const extraccionCache = {};
+
+const BASE = [
+  {id:1, nombre:'Counisa', origen:'Guatemala', proceso:'Natural', tostador:'Puerto Blest', varietal:'Caturra, Catuaí, Bourbon', altura:1300, notas:'Frambuesa, fresa, mermelada de frutos rojos, canela, nuez moscada, hibiscus', pts:84.25, metodo:'Espresso', misnotas:'Ratio 2:1, 18g → 36g. Punto de molienda en exploración entre click 12-14 del Niche. Amargo en 12, ácido en 14. Próxima prueba: click 13.', puntaje:0, fecha:'2026-09-05', nueva:false},
+  {id:2, nombre:'Fincas de Guadalupe', origen:'Colombia', proceso:'Lavado', tostador:'Puerto Blest', varietal:'Castillo', altura:1900, notas:'Durazno, miel, vainilla, té negro', pts:83.5, metodo:'Espresso', misnotas:'Lavado muy suave — con leche se perdía demasiado. No repetir para espresso.', puntaje:3, fecha:'2026-09-05', nueva:false},
+  {id:3, nombre:'El Peñón de la Fe', origen:'Guatemala', proceso:'Natural', tostador:'Puerto Blest', varietal:'Caturra', altura:1575, notas:'Frambuesa, chocolate blanco, manteca, pecano, frutilla, clavo, membrillo', pts:84.75, metodo:'', misnotas:'', puntaje:0, fecha:'2026-09-05', nueva:true},
+  {id:4, nombre:'Café Monteverde', origen:'Perú', proceso:'Natural', tostador:'Puerto Blest', varietal:'Blend', altura:1800, notas:'Frambuesa, frutillas, rosas, miel, crema, almendra', pts:84, metodo:'', misnotas:'¡Me encantó! Fuerte sabor a frutos rojos. El mejor hasta ahora.', puntaje:5, fecha:'2026-09-05', nueva:false},
+  {id:5, nombre:'Timbuyacu', origen:'Perú', proceso:'Lavado', tostador:'Puerto Blest', varietal:'Blend', altura:1800, notas:'Durazno, frutas de hueso, praliné, caramelo, vainilla', pts:83.5, metodo:'', misnotas:'', puntaje:0, fecha:'2026-09-05', nueva:true},
+  {id:6, nombre:'Comité Vituya', origen:'Perú', proceso:'Lavado', tostador:'Puerto Blest', varietal:'Caturra', altura:2200, notas:'Hibiscus, frambuesa, fresa, lúpulo, caramelo, mandarina', pts:86, metodo:'', misnotas:'', puntaje:0, fecha:'2026-09-05', nueva:true},
+];
+
+function cargar() {
+  try { const s = localStorage.getItem(KEY); cafes = s ? JSON.parse(s) : BASE; }
+  catch(e) { cafes = BASE; }
+  render();
+}
+function guardar() { try { localStorage.setItem(KEY, JSON.stringify(cafes)); } catch(e) {} }
+
+function badgeProceso(p) {
+  if (!p) return '';
+  const cls = p==='Natural'?'badge-natural':p==='Lavado'?'badge-lavado':p==='Honey'?'badge-honey':'badge-otro';
+  return `<span class="badge ${cls}">${p}</span>`;
+}
+function fmtFecha(f) {
+  if (!f) return '';
+  try { return new Date(f).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}); }
+  catch(e) { return f; }
+}
+
+function cafesVisibles() {
+  let res = [...cafes];
+  if (origenActivo !== 'todos') res = res.filter(c => c.proceso===origenActivo || c.origen===origenActivo);
+  if (filtrosActivos.proceso.length) res = res.filter(c => filtrosActivos.proceso.includes(c.proceso));
+  if (filtrosActivos.pais.length) res = res.filter(c => filtrosActivos.pais.includes(c.origen));
+  if (filtrosActivos.estrellas !== null) {
+    if (filtrosActivos.estrellas===5) res = res.filter(c => c.puntaje===5);
+    else res = res.filter(c => c.puntaje>=filtrosActivos.estrellas);
+  }
+  res.sort((a,b) => {
+    switch(ordenActivo) {
+      case 'pts':      return (b.pts||0)-(a.pts||0);
+      case 'mio':      return (b.puntaje||0)-(a.puntaje||0);
+      case 'fecha':    return (b.fecha||'').localeCompare(a.fecha||'');
+      case 'alpha':    return a.nombre.localeCompare(b.nombre,'es');
+      case 'tostador': return (a.tostador||'').localeCompare(b.tostador||'','es');
+      case 'pais':     return (a.origen||'').localeCompare(b.origen||'','es');
+      default:         return 0;
+    }
+  });
+  return res;
+}
+
+function setOrigen(v, btn) {
+  origenActivo = v;
+  document.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
+  render();
+}
+function setOrden(v, btn) {
+  ordenActivo = v;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
+  render();
+}
+
+function renderActiveFilters() {
+  const el = document.getElementById('active-filters');
+  const chips = [];
+  filtrosActivos.proceso.forEach(v => chips.push({label:v, grupo:'proceso', val:v}));
+  filtrosActivos.pais.forEach(v => chips.push({label:'🌍 '+v, grupo:'pais', val:v}));
+  if (filtrosActivos.estrellas!==null) chips.push({label:'★'.repeat(filtrosActivos.estrellas)+'+', grupo:'estrellas', val:filtrosActivos.estrellas});
+  el.innerHTML = chips.map(c => `<span class="af-chip" onclick="removeFilter('${c.grupo}','${c.val}')">${c.label} ✕</span>`).join('');
+}
+function removeFilter(grupo, val) {
+  if (grupo==='proceso') filtrosActivos.proceso = filtrosActivos.proceso.filter(v=>v!==val);
+  else if (grupo==='pais') filtrosActivos.pais = filtrosActivos.pais.filter(v=>v!==val);
+  else if (grupo==='estrellas') filtrosActivos.estrellas = null;
+  renderActiveFilters(); render();
+}
+
+function render() {
+  const lista = document.getElementById('lista');
+  const vis = cafesVisibles();
+  const total = cafes.length;
+  document.getElementById('subtitulo').textContent =
+    vis.length===total ? `${total} café${total!==1?'s':''} guardado${total!==1?'s':''}`
+                       : `Mostrando ${vis.length} de ${total} cafés`;
+  if (!vis.length) { lista.innerHTML='<div class="empty"><span>☕</span>Sin cafés con estos filtros.</div>'; return; }
+
+  lista.innerHTML = vis.map(c => {
+    const idx = cafes.indexOf(c);
+    const cacheKey = c.id;
+    return `
+    <div class="cafe-card" id="card-${c.id}">
+      <div class="card-main">
+        <div class="cafe-top">
+          <div>
+            <div class="cafe-nombre">${c.nombre}</div>
+            <div class="cafe-origen">${[c.tostador,c.origen].filter(Boolean).join(' · ')}${c.altura?' · '+c.altura+'m':''}</div>
+          </div>
+          <div class="badges">
+            ${c.nueva?'<span class="badge badge-nueva">nueva</span>':''}
+            ${c.pts?`<span class="badge badge-pts">${c.pts}</span>`:''}
+            ${badgeProceso(c.proceso)}
+          </div>
+        </div>
+        ${c.notas?`<div class="cafe-notas">✦ ${c.notas}</div>`:''}
+        <div class="estrellas">
+          ${[1,2,3,4,5].map(v=>`<span class="estrella${c.puntaje>=v?' on':''}" onclick="setPuntaje(${idx},${v})">${c.puntaje>=v?'★':'☆'}</span>`).join('')}
+        </div>
+        ${c.misnotas?`<button class="btn-notas" onclick="toggleNotas('n${c.id}',this)">Ver mis notas</button><div class="notas-ext" id="n${c.id}">${c.misnotas}</div>`:''}
+        <div class="cafe-meta">
+          ${c.varietal?`<span class="meta-item">🌿 ${c.varietal}</span>`:''}
+          ${c.metodo?`<span class="meta-item">☕ ${c.metodo}</span>`:''}
+          ${c.fecha?`<span class="meta-item">📅 ${fmtFecha(c.fecha)}</span>`:''}
+          <button class="btn-eliminar" onclick="eliminar(${idx})">✕</button>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="action-btn verde" onclick="toggleInfo(${c.id})">🔍 Conocer el café</button>
+        <button class="action-btn azul" onclick="toggleExtraccion(${c.id})">⚙️ Cómo extraerlo</button>
+      </div>
+      <div class="info-panel" id="panel-${c.id}">
+        <div class="info-tab-bar">
+          <button class="info-tab activo" id="tab-info-${c.id}" onclick="showTab(${c.id},'info')">☕ Perfil</button>
+          <button class="info-tab" id="tab-ext-${c.id}" onclick="showTab(${c.id},'ext')">⚙️ Extracción</button>
+        </div>
+        <div id="content-info-${c.id}"></div>
+        <div id="content-ext-${c.id}" style="display:none"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleNotas(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('visible');
+  btn.textContent = el.classList.contains('visible')?'Ocultar notas':'Ver mis notas';
+}
+function setPuntaje(i, v) {
+  cafes[i].puntaje = cafes[i].puntaje===v?0:v;
+  cafes[i].nueva = false;
+  guardar(); render();
+}
+function eliminar(i) {
+  if (!confirm('¿Eliminar este café?')) return;
+  cafes.splice(i,1); guardar(); render();
+}
+
+// INFO PANEL
+function toggleInfo(id) {
+  const panel = document.getElementById(`panel-${id}`);
+  const visible = panel.classList.contains('visible');
+  if (visible) { panel.classList.remove('visible'); return; }
+  panel.classList.add('visible');
+  showTab(id, 'info');
+}
+
+function toggleExtraccion(id) {
+  const panel = document.getElementById(`panel-${id}`);
+  panel.classList.add('visible');
+  showTab(id, 'ext');
+}
+
+function showTab(id, tab) {
+  document.getElementById(`tab-info-${id}`).classList.toggle('activo', tab==='info');
+  document.getElementById(`tab-ext-${id}`).classList.toggle('activo', tab==='ext');
+  document.getElementById(`content-info-${id}`).style.display = tab==='info'?'block':'none';
+  document.getElementById(`content-ext-${id}`).style.display = tab==='ext'?'block':'none';
+  const c = cafes.find(x => x.id===id);
+  if (!c) return;
+  if (tab==='info') cargarInfo(c);
+  else cargarExtraccion(c);
+}
+
+async function gemini(prompt) {
+  const res = await fetch(GEMINI_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message||'Error');
+  return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+}
+
+async function cargarInfo(c) {
+  const el = document.getElementById(`content-info-${c.id}`);
+  if (infoCache[c.id]) { el.innerHTML = infoCache[c.id]; return; }
+  el.innerHTML = `<div class="info-loading"><div class="spinner-sm"></div> Buscando información del café...</div>`;
+  try {
+    const prompt = `Sos un experto en café de especialidad. Escribí un perfil detallado pero conciso sobre este café específico, en español argentino. Usá HTML simple con etiquetas <h4> para secciones y <p> para párrafos.
+
+Café: ${c.nombre}
+Tostador: ${c.tostador||'desconocido'}
+Origen: ${c.origen||'desconocido'}
+Proceso: ${c.proceso||'desconocido'}
+Varietal: ${c.varietal||'desconocido'}
+Altura: ${c.altura?c.altura+' msnm':'desconocida'}
+Notas de cata: ${c.notas||'desconocidas'}
+Puntaje SCA: ${c.pts||'desconocido'}
+
+Incluí estas secciones con etiquetas <h4>:
+- Sobre el tostador (quiénes son, su filosofía, dónde están)
+- Sobre el origen y la región (características del terroir, clima, altitud)
+- Sobre el varietal (qué es, características generales)
+- Sobre el proceso (cómo afecta el sabor final)
+- Qué esperar en taza (descripción sensorial en base a los datos, más allá de las notas de cata listadas)
+
+Sé específico con los datos que tenés. Si no sabés algo con certeza, indicalo. Máximo 300 palabras en total.`;
+
+    const text = await gemini(prompt);
+    infoCache[c.id] = `<div class="info-content">${text}</div>`;
+    el.innerHTML = infoCache[c.id];
+  } catch(e) {
+    el.innerHTML = `<div class="info-error">No pude cargar la información. Verificá tu conexión.</div>`;
+  }
+}
+
+async function cargarExtraccion(c) {
+  const el = document.getElementById(`content-ext-${c.id}`);
+  if (extraccionCache[c.id]) { el.innerHTML = extraccionCache[c.id]; return; }
+  el.innerHTML = `<div class="info-loading"><div class="spinner-sm"></div> Calculando parámetros de extracción...</div>`;
+  try {
+    const prompt = `Sos un barista experto en café de especialidad. Generá recomendaciones de extracción específicas para este café, en español argentino. Usá HTML simple con <h4> para secciones, y para los parámetros usá divs con clase "param" así: <div class="param"><span class="param-label">Etiqueta</span><span class="param-val">Valor</span></div>
+
+Café: ${c.nombre}
+Origen: ${c.origen||'desconocido'}
+Proceso: ${c.proceso||'desconocido'}
+Varietal: ${c.varietal||'desconocido'}
+Altura: ${c.altura?c.altura+' msnm':'desconocida'}
+Notas de cata: ${c.notas||'desconocidas'}
+Puntaje SCA: ${c.pts||'desconocido'}
+
+El usuario tiene:
+- Molino: Niche Zero (escala de 0 a ~50 clicks, donde números más bajos = más fino)
+- Máquina espresso: Bezzera BZ07 (9 bares fijos, sin control de temperatura, ~93-94°C)
+- También prepara Aeropress
+
+Generá dos secciones:
+
+<h4>☕ Espresso — Bezzera BZ07 + Niche Zero</h4>
+Incluí estos parámetros con la estructura "param": Dosis, Rendimiento (output), Ratio, Click Niche Zero sugerido, Tiempo de extracción (flujo real), Temperatura (recordar que es fija), Presión (es fija). Después de los params, un párrafo corto con consejos específicos para este café en esta máquina (temperatura, flush, ajuste fino).
+
+<h4>✈️ Aeropress</h4>
+Incluí: Dosis, Agua, Temperatura, Molienda Niche Zero (click), Tiempo total, Método (normal o invertido). Después un párrafo con técnica recomendada y por qué funciona para este perfil.
+
+Sé específico y técnico. Los clicks del Niche deben ser rangos realistas (ej: 14-17 para espresso, 25-32 para Aeropress).`;
+
+    const text = await gemini(prompt);
+    extraccionCache[c.id] = `<div class="info-content">${text}</div>`;
+    el.innerHTML = extraccionCache[c.id];
+  } catch(e) {
+    el.innerHTML = `<div class="info-error">No pude cargar los parámetros. Verificá tu conexión.</div>`;
+  }
+}
+
+// FILTROS
+function abrirFiltros() {
+  filtrosPendientes = { proceso:[...filtrosActivos.proceso], pais:[...filtrosActivos.pais], estrellas:filtrosActivos.estrellas };
+  document.querySelectorAll('.chip').forEach(c => {
+    const g=c.dataset.grupo, v=c.dataset.val;
+    if (g==='proceso') c.classList.toggle('on', filtrosPendientes.proceso.includes(v));
+    else if (g==='pais') c.classList.toggle('on', filtrosPendientes.pais.includes(v));
+    else if (g==='estrellas') c.classList.toggle('on', filtrosPendientes.estrellas==v);
+  });
+  document.getElementById('filter-overlay').classList.add('visible');
+}
+function cerrarSiFiltroOverlay(e) {
+  if (e.target===document.getElementById('filter-overlay')) document.getElementById('filter-overlay').classList.remove('visible');
+}
+function toggleChip(btn) {
+  const g=btn.dataset.grupo, v=btn.dataset.val;
+  if (g==='estrellas') {
+    const yaOn=btn.classList.contains('on');
+    document.querySelectorAll('[data-grupo="estrellas"]').forEach(c=>c.classList.remove('on'));
+    if (!yaOn) { btn.classList.add('on'); filtrosPendientes.estrellas=parseInt(v); }
+    else filtrosPendientes.estrellas=null;
+  } else {
+    btn.classList.toggle('on');
+    const arr=g==='proceso'?filtrosPendientes.proceso:filtrosPendientes.pais;
+    const idx=arr.indexOf(v);
+    if (idx>=0) arr.splice(idx,1); else arr.push(v);
+  }
+}
+function aplicarFiltros() {
+  filtrosActivos={proceso:[...filtrosPendientes.proceso],pais:[...filtrosPendientes.pais],estrellas:filtrosPendientes.estrellas};
+  document.getElementById('filter-overlay').classList.remove('visible');
+  renderActiveFilters(); render();
+}
+function resetFiltros() {
+  filtrosPendientes={proceso:[],pais:[],estrellas:null};
+  filtrosActivos={proceso:[],pais:[],estrellas:null};
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  document.getElementById('filter-overlay').classList.remove('visible');
+  renderActiveFilters(); render();
+}
+
+// FORM
+function abrirForm(datos) {
+  document.getElementById('form-titulo').textContent = datos?'✨ Revisá los datos':'Agregar café';
+  if (datos) {
+    document.getElementById('f-nombre').value=datos.nombre||'';
+    document.getElementById('f-origen').value=datos.origen||'';
+    document.getElementById('f-tostador').value=datos.tostador||'';
+    document.getElementById('f-notas').value=datos.notas||'';
+    document.getElementById('f-pts').value=datos.pts||'';
+    document.getElementById('f-varietal').value=datos.varietal||'';
+    document.getElementById('f-altura').value=datos.altura||'';
+    const ops=['Natural','Lavado','Honey','Anaeróbico','Experimental'];
+    const m=ops.find(o=>datos.proceso&&datos.proceso.toLowerCase().includes(o.toLowerCase()));
+    document.getElementById('f-proceso').value=m||'';
+  }
+  document.getElementById('overlay').classList.add('visible');
+  if (!datos) document.getElementById('f-nombre').focus();
+}
+function cerrarForm() { document.getElementById('overlay').classList.remove('visible'); limpiarForm(); }
+function cerrarSiOverlay(e) { if(e.target===document.getElementById('overlay')) cerrarForm(); }
+function limpiarForm() {
+  ['f-nombre','f-origen','f-tostador','f-notas','f-misnotas','f-pts','f-varietal','f-altura'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-proceso').value='';
+  document.getElementById('f-metodo').value='';
+  puntajeForm=0; actualizarEstrellasForm(0);
+  document.getElementById('form-error').style.display='none';
+}
+function actualizarEstrellasForm(v) {
+  document.querySelectorAll('#estrellas-form span').forEach(s=>{
+    const sv=parseInt(s.dataset.v); s.textContent=sv<=v?'★':'☆'; s.classList.toggle('on',sv<=v);
+  });
+}
+document.querySelectorAll('#estrellas-form span').forEach(s=>{
+  s.addEventListener('click',()=>{ const v=parseInt(s.dataset.v); puntajeForm=puntajeForm===v?0:v; actualizarEstrellasForm(puntajeForm); });
+});
+function guardarCafe() {
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const errEl=document.getElementById('form-error');
+  if(!nombre){errEl.textContent='El nombre es obligatorio.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  cafes.unshift({
+    id:Date.now(), nombre,
+    origen:document.getElementById('f-origen').value.trim(),
+    proceso:document.getElementById('f-proceso').value,
+    tostador:document.getElementById('f-tostador').value.trim(),
+    varietal:document.getElementById('f-varietal').value.trim(),
+    altura:parseInt(document.getElementById('f-altura').value)||null,
+    notas:document.getElementById('f-notas').value.trim(),
+    pts:parseFloat(document.getElementById('f-pts').value)||null,
+    metodo:document.getElementById('f-metodo').value,
+    misnotas:document.getElementById('f-misnotas').value.trim(),
+    puntaje:puntajeForm,
+    fecha:new Date().toISOString().split('T')[0],
+    nueva:false
+  });
+  guardar(); cerrarForm(); render();
+}
+
+// SCAN
+function abrirScan() {
+  document.getElementById('scan-overlay').classList.add('visible');
+  document.getElementById('scan-preview').style.display='none';
+  document.getElementById('scan-loading').classList.remove('visible');
+  document.getElementById('scan-error').style.display='none';
+  document.getElementById('scan-btns').style.display='flex';
+}
+function cerrarScan() {
+  document.getElementById('scan-overlay').classList.remove('visible');
+  document.getElementById('file-camara').value='';
+  document.getElementById('file-galeria').value='';
+}
+function tomarFoto(){document.getElementById('file-camara').click();}
+function elegirGaleria(){document.getElementById('file-galeria').click();}
+function procesarImagen(input) {
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const base64=e.target.result.split(',')[1];
+    document.getElementById('scan-preview').src=e.target.result;
+    document.getElementById('scan-preview').style.display='block';
+    document.getElementById('scan-btns').style.display='none';
+    document.getElementById('scan-loading').classList.add('visible');
+    document.getElementById('scan-error').style.display='none';
+    try {
+      const response=await fetch(GEMINI_URL,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[
+          {text:`Analizá esta imagen de un packaging de café de especialidad. Extraé los datos y respondé ÚNICAMENTE con JSON válido sin texto adicional ni backticks:\n{"nombre":"finca o lote","origen":"país","tostador":"marca o tostador","proceso":"Natural/Lavado/Honey/Anaeróbico/Experimental","varietal":"varietal o blend","altura":número en msnm o null,"notas":"notas de cata separadas por coma","pts":número o null}\nSi algún dato no aparece usá null o string vacío.`},
+          {inline_data:{mime_type:file.type,data:base64}}
+        ]}]})
+      });
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error?.message||'Error');
+      const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+      document.getElementById('scan-loading').classList.remove('visible');
+      cerrarScan(); limpiarForm(); abrirForm(parsed);
+    } catch(err) {
+      document.getElementById('scan-loading').classList.remove('visible');
+      const errEl=document.getElementById('scan-error');
+      errEl.textContent='No pude leer el packaging. Intentá con mejor iluminación o cargalo manualmente.';
+      errEl.style.display='block';
+      document.getElementById('scan-btns').style.display='flex';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/registro_de_caf-/sw.js');
+cargar();
+</script>
+</body>
+</html>
